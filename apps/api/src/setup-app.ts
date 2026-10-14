@@ -4,18 +4,26 @@ import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { Environment } from './config/environment.js';
 import { ApiExceptionFilter } from './common/filters/api-exception.filter.js';
+import cookieParser from 'cookie-parser';
+import type { NextFunction, Request, Response } from 'express';
 
 export function setupApp(app: INestApplication): void {
   const config = app.get(ConfigService<Environment, true>);
   app.setGlobalPrefix('api/v1');
+  app.use(cookieParser());
+  // Apply before guards so rejected authentication responses also cannot be cached.
+  app.use('/api/v1/auth', (_request: Request, response: Response, next: NextFunction) => {
+    response.setHeader('Cache-Control', 'no-store');
+    next();
+  });
   app.enableCors({
     origin: config
       .get('CORS_ORIGINS', { infer: true })
       .split(',')
       .map((origin) => origin.trim()),
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: false,
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-FlowDesk-CSRF'],
+    credentials: true,
   });
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
@@ -27,8 +35,11 @@ export function setupApp(app: INestApplication): void {
       app,
       new DocumentBuilder()
         .setTitle('FlowDesk API')
-        .setDescription('第一阶段：服务存活与数据库就绪检查。认证与业务接口尚未实现。')
-        .setVersion('0.1.0')
+        .setDescription(
+          '第二阶段 2A：身份认证与健康检查。企业、RBAC 和工单业务尚未实现。认证 POST 需要允许的 Origin、JSON 与 X-FlowDesk-CSRF: 1。',
+        )
+        .setVersion('0.2.0')
+        .addBearerAuth()
         .build(),
     );
     SwaggerModule.setup('api/docs', app, document, {

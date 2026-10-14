@@ -10,6 +10,8 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/dist/**',
       '**/.dev/**',
+      '**/.local-tools/**',
+      '**/.local-db/**',
       '**/coverage/**',
       'apps/api/src/generated/**',
     ],

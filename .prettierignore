@@ -6,3 +6,5 @@ pnpm-lock.yaml
 apps/api/src/generated
 .env
 apps/*/.env
+.local-tools
+.local-db

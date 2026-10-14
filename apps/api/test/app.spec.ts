@@ -9,6 +9,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/database/prisma.service.js';
 import { setupApp } from '../src/setup-app.js';
+import { Public } from '../src/auth/public.decorator.js';
 
 class ProbeDto {
   @IsString()
@@ -16,6 +17,7 @@ class ProbeDto {
 }
 
 @Controller('test-probe')
+@Public()
 class ProbeController {
   @Post()
   echo(@Body() body: ProbeDto) {
@@ -36,10 +38,14 @@ class TestModule {}
 
 describe('API HTTP contract', () => {
   let app: INestApplication;
-  const database = { isReady: jest.fn<() => Promise<boolean>>() };
+  const database = {
+    isReady: jest.fn<() => Promise<boolean>>(),
+    user: { findUnique: jest.fn<() => Promise<never>>() },
+  };
 
   beforeAll(async () => {
     process.env.NODE_ENV = 'test';
+    process.env.JWT_SECRET = randomBytes(48).toString('hex');
     process.env.DATABASE_URL = `postgresql://test:${randomBytes(12).toString('hex')}@localhost:5432/test`;
     process.env.SWAGGER_ENABLED = 'true';
     const module = await Test.createTestingModule({ imports: [TestModule] })
@@ -55,6 +61,7 @@ describe('API HTTP contract', () => {
   });
   beforeEach(() => {
     database.isReady.mockReset();
+    database.user.findUnique.mockReset();
   });
 
   it('serves liveness without querying the database', async () => {
@@ -118,5 +125,27 @@ describe('API HTTP contract', () => {
     await request(app.getHttpServer()).get('/api/docs').expect(200);
     const response = await request(app.getHttpServer()).get('/api/docs-json').expect(200);
     expect(response.body.paths['/api/v1/health']).toBeDefined();
+    expect(response.body.paths['/api/v1/auth/register']).toBeDefined();
+    expect(response.body.paths['/api/v1/auth/me'].get.security).toEqual([{ bearer: [] }]);
+  });
+
+  it('returns 401 for unauthenticated identity requests without a database read', async () => {
+    const response = await request(app.getHttpServer()).get('/api/v1/auth/me').expect(401);
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(database.user.findUnique).not.toHaveBeenCalled();
+  });
+  it('returns 503 for login database outages without leaking database details', async () => {
+    database.user.findUnique.mockRejectedValue({
+      code: 'P1001',
+      message: 'private database details',
+    });
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .set('Origin', 'http://localhost:5173')
+      .set('X-FlowDesk-CSRF', '1')
+      .send({ email: 'test@example.com', password: 'test-only-long-password' })
+      .expect(503);
+    expect(response.body.message).toBe('数据库暂不可用，请稍后重试');
+    expect(JSON.stringify(response.body)).not.toContain('private database details');
   });
 });

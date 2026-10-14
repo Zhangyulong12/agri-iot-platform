@@ -46,6 +46,17 @@ if (!existsSync(apiEnv)) {
   console.log('已创建 apps/api/.env。');
 }
 const webEnv = resolve(root, 'apps/web/.env');
+const existingApi = readFileSync(apiEnv, 'utf8');
+if (!/^JWT_SECRET=.+$/m.test(existingApi)) {
+  const secretLine = `JWT_SECRET=${randomBytes(48).toString('base64url')}`;
+  writeFileSync(
+    apiEnv,
+    /^JWT_SECRET=.*$/m.test(existingApi)
+      ? existingApi.replace(/^JWT_SECRET=.*$/m, secretLine)
+      : `${existingApi.trimEnd()}\n${secretLine}\n`,
+  );
+  console.log('已补充本地 JWT 随机密钥；现有其他配置保留。');
+}
 if (!existsSync(webEnv)) {
   writeFileSync(webEnv, readFileSync(resolve(root, 'apps/web/.env.example'), 'utf8'), {
     flag: 'wx',

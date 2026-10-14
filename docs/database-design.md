@@ -2,12 +2,14 @@
 
 ## 范围
 
-第一阶段实际 schema 只有 User、Organization、Membership 与 MembershipRole；Tickets、评论、审计和认证凭据仅设计，不提前实现业务。本阶段迁移不包含初始账号或默认密码。
+当前 schema 包含 User、Organization、Membership、MembershipRole、AuthSession 与 RefreshToken；Tickets、评论与审计仍为规划。迁移不包含初始账号或默认密码。
 
 ```mermaid
 erDiagram
   User ||--o{ Membership : joins
   Organization ||--o{ Membership : includes
+  User ||--o{ AuthSession : authenticates
+  AuthSession ||--o{ RefreshToken : rotates
   Organization ||--o{ Ticket : "后续"
   Membership ||--o{ Ticket : "后续创建与分配"
 ```
@@ -36,16 +38,18 @@ Tenant 查询必须把 organizationId 放入 where 条件，更新或删除不�
 
 TicketComment 计划拥有 organizationId、ticketId、authorMembershipId、content 与时间；审计记录同样带 organizationId。评论与工单之间采用带 organizationId 的复合外键，保证不能将企业 A 的评论挂到企业 B 的工单。
 
-## 认证与安全规划
+## 认证与安全
 
-下一阶段引入密码摘要或独立凭据表，禁止存储明文密码。JWT Secret 从环境变量读取；本阶段没有 JWT 变量、令牌签发或登录逻辑。组织选择只能作为客户端请求意图，后端从认证用户与成员关系核验身份。Prisma 客户端必须通过 Service 访问，不能在 Controller 或浏览器中直接使用。
+2A 已为 User 添加可空 passwordHash，兼容既有用户；未配置密码的旧用户不能登录。AuthSession 存储 userId、绝对 expiresAt 与 revokedAt；RefreshToken 存储唯一 tokenHash、sessionId 与 consumedAt。用户删除时只级联其认证记录；组织成员仍使用 Restrict。
+
+密码使用 scrypt；JWT_SECRET 从环境读取；刷新凭据仅保存 SHA-256 摘要。轮换通过事务与会话行锁保护，重放撤销在事务中提交后再返回 401。详见 [认证契约](authentication.md)。组织选择与成员资格核验属于 2B/2C；Prisma 访问集中于后端 Service/Repository。
 
 ## 迁移工作流
 
 1. `pnpm env:init` 生成本地环境配置，不会覆盖已有文件。
-2. `pnpm db:up` 启动 PostgreSQL。
-3. `pnpm db:deploy` 应用仓库内的初始迁移。
+2. `pnpm db:up` 启动 Compose；当前 Windows 环境也可用 `pnpm db:local:up`。
+3. `pnpm db:deploy` 应用仓库内的初始模型与认证迁移。
 4. 模型变更时 `pnpm db:migrate --name descriptive_change` 生成开发迁移并审查 SQL。
 5. `pnpm db:generate` 重新生成客户端；Prisma 7 不应假定 migrate 会自动生成客户端。
 
-初始迁移从 schema 生成。当前环境没有 Docker，迁移执行和 PostgreSQL 真实连接验证未完成；不能把 schema 校验或模拟就绪测试当作真实数据库验证。已有数据卷修改 POSTGRES_PASSWORD 不会更新数据库内部密码，应使用数据库管理方式修改后同步 DATABASE_URL，不能通过删卷解决。
+当前独立真实 PostgreSQL 已通过迁移、重复迁移、约束与认证验证；Docker Compose 启动仍未验证。已有数据目录修改 POSTGRES_PASSWORD 不会更新数据库内部密码，应使用数据库管理方式修改后同步 DATABASE_URL，不能通过删卷解决。

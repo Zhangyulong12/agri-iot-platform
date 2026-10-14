@@ -11,10 +11,23 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const request = context.getRequest<Request>();
     const response = context.getResponse<Response>();
     const path = request.originalUrl.split('?')[0] ?? request.path;
-    const status =
+    let status =
       exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     let message: string | string[] = 'Internal server error';
     let error = 'Internal Server Error';
+    const code =
+      typeof exception === 'object' && exception !== null && 'code' in exception
+        ? String(exception.code)
+        : '';
+    if (
+      ['P1000', 'P1001', 'P1002', 'P1008', 'P1017', 'P2024', 'ECONNREFUSED', 'ECONNRESET'].includes(
+        code,
+      )
+    ) {
+      status = HttpStatus.SERVICE_UNAVAILABLE;
+      message = '数据库暂不可用，请稍后重试';
+      error = 'Service Unavailable';
+    }
     if (exception instanceof HttpException) {
       const body = exception.getResponse();
       if (typeof body === 'string') message = body;

@@ -82,8 +82,8 @@ export function DashboardPage() {
             基础工程已就位，业务能力将分阶段上线。
           </p>
           <Space>
-            <Tag color="blue">第一阶段</Tag>
-            <span className="welcome-note">工程基础与界面预览</span>
+            <Tag color="blue">第二阶段 2A</Tag>
+            <span className="welcome-note">身份认证与会话管理</span>
           </Space>
         </div>
         <div className="flow-visual" aria-hidden="true">
@@ -106,8 +106,8 @@ export function DashboardPage() {
       <Alert
         type="info"
         showIcon
-        title="当前为开发预览，尚未接通身份认证"
-        description="页面可自由浏览。工单、成员与权限功能正在开发中，当前没有业务统计数据。"
+        title="身份认证已接通，企业业务正在开发中"
+        description="你已通过真实登录进入工作台。工单、企业成员与权限功能尚未实现，当前没有业务统计数据。"
         className="phase-alert"
       />
       <div className="section-heading">
@@ -153,7 +153,7 @@ export function DashboardPage() {
           </div>
           <div className="service-row">
             <span>身份认证</span>
-            <Tag>尚未实现</Tag>
+            <Tag color="success">已登录</Tag>
           </div>
           <p className="card-note">
             {health.isError
@@ -163,13 +163,13 @@ export function DashboardPage() {
                 : '服务状态来自真实接口，数据库就绪检查会执行 SELECT 1。'}
           </p>
         </Card>
-        <Card title="建设进度" extra={<span className="muted">阶段 1 / 5</span>}>
+        <Card title="建设进度" extra={<span className="muted">阶段 2 / 5 · 2A</span>}>
           <div className="progress-heading">
-            <strong>基础工程与架构</strong>
+            <strong>身份认证与会话管理</strong>
             <Tag color="blue">当前阶段</Tag>
           </div>
-          <Progress percent={20} showInfo={false} strokeColor="#155eef" />
-          <p className="card-note">接下来：身份认证、企业组织与租户上下文。</p>
+          <Progress percent={25} showInfo={false} strokeColor="#155eef" />
+          <p className="card-note">接下来：企业组织、成员管理与租户上下文。进度为阶段示意。</p>
           <div className="milestone">
             <CheckCircleOutlined /> 页面布局与路由 <CheckCircleOutlined /> API 与数据模型基础
           </div>

@@ -5,6 +5,7 @@ import zhCN from 'antd/locale/zh_CN';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { AppRoutes } from './app-routes';
+import { AuthBootstrap } from './auth/auth-bootstrap';
 import 'antd/dist/reset.css';
 import './styles.css';
 
@@ -37,6 +38,7 @@ createRoot(root).render(
       <App>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
+            <AuthBootstrap />
             <AppRoutes />
           </BrowserRouter>
         </QueryClientProvider>

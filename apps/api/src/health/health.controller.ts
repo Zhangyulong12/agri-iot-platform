@@ -7,9 +7,11 @@ import {
 } from '@nestjs/swagger';
 import { HealthService } from './health.service.js';
 import { HealthResponseDto, ReadinessResponseDto } from './dto/health-response.dto.js';
+import { Public } from '../auth/public.decorator.js';
 
 @ApiTags('健康检查')
 @Controller('health')
+@Public()
 export class HealthController {
   constructor(private readonly health: HealthService) {}
 

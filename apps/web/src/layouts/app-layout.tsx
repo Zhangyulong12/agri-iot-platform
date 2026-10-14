@@ -1,14 +1,17 @@
 import {
   AppstoreOutlined,
-  ArrowLeftOutlined,
+  LogoutOutlined,
   FileTextOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
-import { Avatar, Breadcrumb, Button, Drawer, Grid, Layout, Menu, Tag } from 'antd';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { App, Avatar, Breadcrumb, Button, Drawer, Grid, Layout, Menu, Tag } from 'antd';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useAuthStore } from '../stores/auth-store';
+import { authErrorMessage, logout } from '../auth/session';
 import { Brand } from '../components/brand';
 import { useLayoutStore } from '../stores/layout-store';
 
@@ -20,6 +23,19 @@ const navigation = [
 ];
 
 export function AppLayout() {
+  const user = useAuthStore((state) => state.user);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const { message } = App.useApp();
+  async function handleLogout() {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch (error) {
+      void message.error(authErrorMessage(error));
+    } finally {
+      setLoggingOut(false);
+    }
+  }
   const location = useLocation();
   const navigate = useNavigate();
   const screens = Grid.useBreakpoint();
@@ -61,7 +77,7 @@ export function AppLayout() {
             ) : (
               <>
                 <span className="status-dot" />
-                第一阶段 · 基础工程
+                第二阶段 · 身份认证
               </>
             )}
           </div>
@@ -88,11 +104,19 @@ export function AppLayout() {
             <Breadcrumb items={[{ title: '工作空间' }, { title: current?.label ?? '页面' }]} />
           </div>
           <div className="topbar-end">
-            <Tag className="preview-tag">界面预览 · 未认证</Tag>
+            <Tag className="preview-tag">{user?.displayName}</Tag>
             <Avatar style={{ background: '#eaf0ff', color: '#155eef' }} icon={<TeamOutlined />} />
-            <Link to="/login" className="login-link">
-              登录页面 <ArrowLeftOutlined />
-            </Link>
+            <Button
+              type="text"
+              className="login-link"
+              icon={<LogoutOutlined />}
+              loading={loggingOut}
+              onClick={() => {
+                void handleLogout();
+              }}
+            >
+              退出登录
+            </Button>
           </div>
         </Layout.Header>
         <Layout.Content className="main-content">
@@ -100,7 +124,7 @@ export function AppLayout() {
         </Layout.Content>
         <Layout.Footer className="app-footer">
           <span>FlowDesk · 让服务协作更有序</span>
-          <span>基础工程 / v0.1.0</span>
+          <span>身份认证 / v0.2.0</span>
         </Layout.Footer>
       </Layout>
     </Layout>

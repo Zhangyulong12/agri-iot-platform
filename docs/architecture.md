@@ -1,8 +1,8 @@
 # 系统架构与技术选型
 
-## 第一阶段边界
+## 当前阶段边界
 
-本阶段交付可编译、可启动的前后端基础工程、管理后台界面、健康检查、数据库访问基础与初始组织模型。登录仅为 UI，没有认证、业务 CRUD、RBAC 或审计接口。公开预览页面不代表拥有任何企业权限。
+第一阶段基础工程已完成，第二阶段 2A 已实现真实注册、登录、JWT Guard、可撤销会话与一次性刷新令牌。组织、成员、工单 CRUD、RBAC 与审计接口仍未实现；登录只证明用户身份。独立开发预览仅在开发环境显式开启。
 
 ## 分层与通信
 
@@ -14,7 +14,7 @@ flowchart LR
   Prisma --> DB[(PostgreSQL)]
 ```
 
-Vite 在开发环境将 `/api` 代理至 NestJS。生产部署由 Nginx 或其他反向代理提供静态页面、SPA 回退和 API 转发。前端所有业务请求通过 Axios 实例；TanStack Query 管理服务端数据、请求取消与刷新；Zustand 仅管理侧栏等界面状态，不能用它缓存密码或伪造认证。
+Vite 在开发环境将 `/api` 代理至 NestJS，保留浏览器 Origin。生产部署由 Nginx 或其他反向代理提供静态页面、SPA 回退和 API 转发。业务请求通过 Axios 实例，认证使用独立实例避免刷新循环；TanStack Query 管理服务端数据。Zustand 管理界面与仅驻留内存的认证状态，不持久化密码或 access token。
 
 后端使用 ConfigModule 全局加载环境文件并校验变量。所有业务 API 使用 `/api/v1` 前缀。全局 ValidationPipe 开启 transform、whitelist、forbidNonWhitelisted，拒绝 DTO 未声明的字段。异常过滤器统一输出 `statusCode`、`error`、`message`、`path`、`timestamp`，保留 400、404、409、503 等状态；未知异常返回 500，隐藏实现细节与凭据。
 
@@ -41,7 +41,7 @@ Swagger 位于 `/api/docs`，OpenAPI JSON 位于 `/api/docs-json`。生产环境
 
 ## 模块演进
 
-已实现 AppModule、HealthModule、DatabaseModule。后续按需要增加 AuthModule、UsersModule、OrganizationsModule、MembershipsModule、TicketsModule、AuditModule，避免本阶段创建空壳业务模块或多层无用抽象。
+已实现 AppModule、HealthModule、DatabaseModule、AuthModule。AuthController 处理 DTO、Cookie 与 HTTP；AuthService 处理注册登录；AuthRepository 集中通过 PrismaService 访问数据库，轮换操作使用事务与会话行锁。后续按业务增加组织、成员、工单与审计模块。
 
 多租户采用共享数据库、共享 schema 和 organizationId 行级隔离。认证后在后端建立租户上下文：核验当前用户有效 Membership，再执行企业资源查询；所有读写都使用 organizationId 条件。前端隐藏按钮只改善体验，不能授权。第二阶段前没有企业资源业务接口，因此当前尚不能声称实现多租户安全隔离。
 
@@ -49,4 +49,4 @@ Swagger 位于 `/api/docs`，OpenAPI JSON 位于 `/api/docs-json`。生产环境
 
 ## 后续部署注意事项
 
-本阶段 Compose 仅包含本地 PostgreSQL，并绑定 127.0.0.1。部署 API 时使用 `HOST=0.0.0.0`、`NODE_ENV=production`、独立密钥管理及反向代理。部署前执行 `pnpm db:deploy`；禁止在生产运行 migrate dev。前端 BrowserRouter 需要静态服务器将非 API 的未知路径回退到 index.html。Redis、JWT、RBAC、审计、日志追踪与完整发布流水线均属于后续阶段。
+本阶段 Compose 仅包含本地 PostgreSQL，并绑定 127.0.0.1。部署 API 时使用 `HOST=0.0.0.0`、`NODE_ENV=production`、独立密钥管理及反向代理。部署前执行 `pnpm db:deploy`；禁止在生产运行 migrate dev。前端 BrowserRouter 需要 SPA 回退。认证要求 HTTPS、Secure Cookie 与严格来源；Redis、RBAC、审计、日志追踪与完整发布流水线仍属于后续阶段。详见 [认证设计](authentication.md)。
