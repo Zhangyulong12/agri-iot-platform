@@ -1,0 +1,41 @@
+{
+  "name": "flowdesk",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": "^22.22.2 || ^24.15.0",
+    "pnpm": ">=11 <12"
+  },
+  "scripts": {
+    "env:init": "node scripts/init-env.mjs",
+    "dev": "pnpm --parallel --filter @flowdesk/api --filter @flowdesk/web dev",
+    "dev:web": "pnpm --filter @flowdesk/web dev",
+    "dev:api": "pnpm --filter @flowdesk/api dev",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f postgres",
+    "db:generate": "pnpm --filter @flowdesk/api db:generate",
+    "db:validate": "pnpm --filter @flowdesk/api db:validate",
+    "db:migrate": "pnpm --filter @flowdesk/api db:migrate",
+    "db:deploy": "pnpm --filter @flowdesk/api db:deploy",
+    "db:studio": "pnpm --filter @flowdesk/api db:studio"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.12.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.2"
+  }
+}

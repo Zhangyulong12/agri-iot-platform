@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.dev/
+coverage/
+.env
+.env.*
+!.env.example
+apps/api/src/generated/
+*.tsbuildinfo
+*.log
+.DS_Store
+.idea/
